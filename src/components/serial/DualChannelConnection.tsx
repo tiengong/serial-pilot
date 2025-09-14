@@ -201,10 +201,10 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
       {/* Responsive Container for Serial Port Configurations */}
       <div className="flex-1 min-h-0 overflow-auto">
         <div className="w-full h-full min-h-[600px] p-2 sm:p-4">
-          <div className="grid grid-cols-1 gap-3 sm:gap-4 h-full auto-rows-max">
+          <div className="flex flex-col gap-3 sm:gap-4 h-full auto-rows-max">
             
             {/* Main Serial Port */}
-            <Card className="flex-shrink-0">
+            <Card className="flex-shrink-0 min-w-0">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
                   {p1Port?.connected ? (
@@ -222,18 +222,18 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                   )}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3 sm:space-y-4">
+              <CardContent className="space-y-3 sm:space-y-4 overflow-hidden">
                 {!p1Port?.connected ? (
                   <>
                     {/* Port Selection */}
-                    <div className="space-y-1 sm:space-y-2">
-                      <Label className="text-xs sm:text-sm">{t("connection.selectPort")}</Label>
+                    <div className="space-y-1 sm:space-y-2 min-w-0">
+                      <Label className="text-xs sm:text-sm flex-shrink-0">{t("connection.selectPort")}</Label>
                       <Select
                         value={selectedIndex.P1}
                         onValueChange={handleP1PortSelect}
                         onOpenChange={handleP1PortDropdownOpen}
                       >
-                        <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm">
+                        <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm w-full min-w-0">
                           <SelectValue placeholder={t("connection.selectDeviceAuto")} />
                         </SelectTrigger>
                         <SelectContent>
@@ -263,28 +263,30 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                     </div>
 
                     {/* Basic Configuration */}
-                    <div className="grid grid-cols-2 gap-2 sm:gap-4">
-                      <BaudRateSelect
-                        value={strategy.p1Config.baudRate}
-                        onChange={(value) => 
-                          updateStrategy({ 
-                            p1Config: { ...strategy.p1Config, baudRate: value }
-                          })
-                        }
-                        label={t("connection.baudRate")}
-                      />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 min-w-0">
+                      <div className="min-w-0">
+                        <BaudRateSelect
+                          value={strategy.p1Config.baudRate}
+                          onChange={(value) =>
+                            updateStrategy({
+                              p1Config: { ...strategy.p1Config, baudRate: value }
+                            })
+                          }
+                          label={t("connection.baudRate")}
+                        />
+                      </div>
 
-                      <div className="space-y-1 sm:space-y-2">
-                        <Label className="text-xs sm:text-sm">{t("connection.dataBits")}</Label>
+                      <div className="space-y-1 sm:space-y-2 min-w-0">
+                        <Label className="text-xs sm:text-sm flex-shrink-0">{t("connection.dataBits")}</Label>
                         <Select
                           value={strategy.p1Config.dataBits.toString()}
-                          onValueChange={(value) => 
-                            updateStrategy({ 
+                          onValueChange={(value) =>
+                            updateStrategy({
                               p1Config: { ...strategy.p1Config, dataBits: parseInt(value) as 5 | 6 | 7 | 8 }
                             })
                           }
                         >
-                          <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm">
+                          <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm w-full min-w-0">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -297,17 +299,17 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                         </Select>
                       </div>
 
-                      <div className="space-y-1 sm:space-y-2">
-                        <Label className="text-xs sm:text-sm">{t("connection.parity")}</Label>
+                      <div className="space-y-1 sm:space-y-2 min-w-0">
+                        <Label className="text-xs sm:text-sm flex-shrink-0">{t("connection.parity")}</Label>
                         <Select
                           value={strategy.p1Config.parity}
-                          onValueChange={(value: 'none' | 'even' | 'odd' | 'mark' | 'space') => 
-                            updateStrategy({ 
+                          onValueChange={(value: 'none' | 'even' | 'odd' | 'mark' | 'space') =>
+                            updateStrategy({
                               p1Config: { ...strategy.p1Config, parity: value }
                             })
                           }
                         >
-                          <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm">
+                          <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm w-full min-w-0">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -320,17 +322,17 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                         </Select>
                       </div>
 
-                      <div className="space-y-1 sm:space-y-2">
-                        <Label className="text-xs sm:text-sm">{t("connection.stopBits")}</Label>
+                      <div className="space-y-1 sm:space-y-2 min-w-0">
+                        <Label className="text-xs sm:text-sm flex-shrink-0">{t("connection.stopBits")}</Label>
                         <Select
                           value={strategy.p1Config.stopBits.toString()}
-                          onValueChange={(value) => 
-                            updateStrategy({ 
+                          onValueChange={(value) =>
+                            updateStrategy({
                               p1Config: { ...strategy.p1Config, stopBits: parseInt(value) as 1 | 2 }
                             })
                           }
                         >
-                          <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm">
+                          <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm w-full min-w-0">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -344,7 +346,7 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                     <Button
                       onClick={() => connectChannel('P1')}
                       disabled={!selectedPorts.P1 || isConnecting.P1}
-                      className="w-full h-8 sm:h-10 text-xs sm:text-sm"
+                      className="w-full h-8 sm:h-10 text-xs sm:text-sm flex-shrink-0"
                     >
                       {isConnecting.P1 ? (
                         <>
@@ -357,24 +359,24 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                     </Button>
                   </>
                 ) : (
-                  <div className="p-2 sm:p-3 bg-success/10 border border-success/20 rounded-md">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-success">
-                        <div className="w-2 h-2 bg-success rounded-full animate-pulse"></div>
-                        <span className="text-xs sm:text-sm font-medium">
+                  <div className="p-2 sm:p-3 bg-success/10 border border-success/20 rounded-md min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 text-success min-w-0">
+                        <div className="w-2 h-2 bg-success rounded-full animate-pulse flex-shrink-0"></div>
+                        <span className="text-xs sm:text-sm font-medium truncate">
                           {t("connection.connected")} - {p1Port.params.baudRate} bps
                         </span>
                       </div>
                       <Button
                         variant="destructive"
                         size="sm"
-                        className="h-6 sm:h-8 px-2 sm:px-3 text-xs"
+                        className="h-6 sm:h-8 px-2 sm:px-3 text-xs flex-shrink-0"
                         onClick={() => disconnectChannel('P1')}
                       >
                         {t("connection.disconnect")}
                       </Button>
                     </div>
-                    <div className="text-xs text-muted-foreground mt-1">
+                    <div className="text-xs text-muted-foreground mt-1 min-w-0">
                       {p1Port.params.dataBits}{t("connection.bits")} • {p1Port.params.parity === 'none' ? t("connection.noParity") : p1Port.params.parity} • {p1Port.params.stopBits}{t("connection.stopBits")}
                     </div>
                   </div>
@@ -384,20 +386,20 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
 
             {/* Add Secondary Serial Port - Simplified */}
             {!p2Port?.connected && !strategy.p2Enabled && (
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full justify-center h-8 sm:h-10 text-xs sm:text-sm flex-shrink-0"
                 onClick={async () => {
                   // Enable P2 and sync config with P1
-                  updateStrategy({ 
+                  updateStrategy({
                     p2Enabled: true,
                     mode: 'P1_P2',
                     p2Config: { ...strategy.p1Config } // Sync with P1 config
                   });
-                  
+
                   // Auto-refresh ports for immediate selection
                   await requestPortAndRefresh();
-                  
+
                   toast({
                     title: t("connection.secondPortEnabled"),
                     description: t("connection.secondPortEnabledDesc"),
@@ -411,7 +413,7 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
 
             {/* Secondary Serial Port */}
             {strategy.p2Enabled && (
-              <Card className="flex-shrink-0">
+              <Card className="flex-shrink-0 min-w-0">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
                     {p2Port?.connected ? (
@@ -440,18 +442,18 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                     </Button>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3 sm:space-y-4">
+                <CardContent className="space-y-3 sm:space-y-4 overflow-hidden">
                   {!p2Port?.connected ? (
                     <>
                       {/* Port Selection */}
-                      <div className="space-y-1 sm:space-y-2">
-                        <Label className="text-xs sm:text-sm">{t("connection.selectPort")}</Label>
+                      <div className="space-y-1 sm:space-y-2 min-w-0">
+                        <Label className="text-xs sm:text-sm flex-shrink-0">{t("connection.selectPort")}</Label>
                         <Select
                           value={selectedIndex.P2}
                           onValueChange={handleP2PortSelect}
                           onOpenChange={handleP2PortDropdownOpen}
                         >
-                          <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm">
+                          <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm w-full min-w-0">
                             <SelectValue placeholder={t("connection.selectDeviceAuto")} />
                           </SelectTrigger>
                           <SelectContent>
@@ -481,28 +483,30 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                       </div>
 
                       {/* Detailed Configuration */}
-                      <div className="grid grid-cols-2 gap-2 sm:gap-4">
-                        <BaudRateSelect
-                          value={strategy.p2Config.baudRate}
-                          onChange={(value) => 
-                            updateStrategy({ 
-                              p2Config: { ...strategy.p2Config, baudRate: value }
-                            })
-                          }
-                          label={t("connection.baudRate")}
-                        />
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 min-w-0">
+                        <div className="min-w-0">
+                          <BaudRateSelect
+                            value={strategy.p2Config.baudRate}
+                            onChange={(value) =>
+                              updateStrategy({
+                                p2Config: { ...strategy.p2Config, baudRate: value }
+                              })
+                            }
+                            label={t("connection.baudRate")}
+                          />
+                        </div>
 
-                        <div className="space-y-1 sm:space-y-2">
-                          <Label className="text-xs sm:text-sm">{t("connection.dataBits")}</Label>
+                        <div className="space-y-1 sm:space-y-2 min-w-0">
+                          <Label className="text-xs sm:text-sm flex-shrink-0">{t("connection.dataBits")}</Label>
                           <Select
                             value={strategy.p2Config.dataBits.toString()}
-                            onValueChange={(value) => 
-                              updateStrategy({ 
+                            onValueChange={(value) =>
+                              updateStrategy({
                                 p2Config: { ...strategy.p2Config, dataBits: parseInt(value) as 5 | 6 | 7 | 8 }
                               })
                             }
                           >
-                            <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm">
+                            <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm w-full min-w-0">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -515,17 +519,17 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                           </Select>
                         </div>
 
-                        <div className="space-y-1 sm:space-y-2">
-                          <Label className="text-xs sm:text-sm">{t("connection.parity")}</Label>
+                        <div className="space-y-1 sm:space-y-2 min-w-0">
+                          <Label className="text-xs sm:text-sm flex-shrink-0">{t("connection.parity")}</Label>
                           <Select
                             value={strategy.p2Config.parity}
-                            onValueChange={(value: 'none' | 'even' | 'odd' | 'mark' | 'space') => 
-                              updateStrategy({ 
+                            onValueChange={(value: 'none' | 'even' | 'odd' | 'mark' | 'space') =>
+                              updateStrategy({
                                 p2Config: { ...strategy.p2Config, parity: value }
                               })
                             }
                           >
-                            <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm">
+                            <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm w-full min-w-0">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -538,17 +542,17 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                           </Select>
                         </div>
 
-                        <div className="space-y-1 sm:space-y-2">
-                          <Label className="text-xs sm:text-sm">{t("connection.stopBits")}</Label>
+                        <div className="space-y-1 sm:space-y-2 min-w-0">
+                          <Label className="text-xs sm:text-sm flex-shrink-0">{t("connection.stopBits")}</Label>
                           <Select
                             value={strategy.p2Config.stopBits.toString()}
-                            onValueChange={(value) => 
-                              updateStrategy({ 
+                            onValueChange={(value) =>
+                              updateStrategy({
                                 p2Config: { ...strategy.p2Config, stopBits: parseInt(value) as 1 | 2 }
                               })
                             }
                           >
-                            <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm">
+                            <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm w-full min-w-0">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -562,7 +566,7 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                       <Button
                         onClick={() => connectChannel('P2')}
                         disabled={!selectedPorts.P2 || isConnecting.P2}
-                        className="w-full h-8 sm:h-10 text-xs sm:text-sm"
+                        className="w-full h-8 sm:h-10 text-xs sm:text-sm flex-shrink-0"
                       >
                         {isConnecting.P2 ? (
                           <>
@@ -575,24 +579,24 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                       </Button>
                     </>
                   ) : (
-                    <div className="p-2 sm:p-3 bg-success/10 border border-success/20 rounded-md">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-success">
-                          <div className="w-2 h-2 bg-success rounded-full animate-pulse"></div>
-                          <span className="text-xs sm:text-sm font-medium">
+                    <div className="p-2 sm:p-3 bg-success/10 border border-success/20 rounded-md min-w-0">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 text-success min-w-0">
+                          <div className="w-2 h-2 bg-success rounded-full animate-pulse flex-shrink-0"></div>
+                          <span className="text-xs sm:text-sm font-medium truncate">
                             {t("connection.connected")} - {p2Port.params.baudRate} bps
                           </span>
                         </div>
                         <Button
                           variant="destructive"
                           size="sm"
-                          className="h-6 sm:h-8 px-2 sm:px-3 text-xs"
+                          className="h-6 sm:h-8 px-2 sm:px-3 text-xs flex-shrink-0"
                           onClick={() => disconnectChannel('P2')}
                         >
                           {t("connection.disconnect")}
                         </Button>
                       </div>
-                      <div className="text-xs text-muted-foreground mt-1">
+                      <div className="text-xs text-muted-foreground mt-1 min-w-0">
                         {p2Port.params.dataBits}{t("connection.bits")} • {p2Port.params.parity === 'none' ? t("connection.noParity") : p2Port.params.parity} • {p2Port.params.stopBits}{t("connection.stopBits")}
                       </div>
                     </div>
