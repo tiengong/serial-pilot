@@ -1,0 +1,14 @@
+{
+  "debug": {
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build:dev",
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:8084"
+  },
+  "release": {
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:8084"
+  }
+}

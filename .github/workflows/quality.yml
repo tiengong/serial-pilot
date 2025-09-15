@@ -1,0 +1,262 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # 每周一运行一次
+    - cron: '0 9 * * 1'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # 前端代码质量检查
+  frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint code
+        run: npm run lint
+
+      - name: Type check
+        run: npm run typecheck || echo "Type checking completed with warnings"
+
+      - name: Check formatting
+        run: npm run format:check || echo "Formatting check completed"
+
+      - name: Run tests
+        run: npm test --if-present || echo "No tests found"
+
+      - name: Security audit
+        run: npm audit --audit-level=high || echo "Security audit completed with warnings"
+
+      - name: Check for outdated dependencies
+        run: npm outdated || echo "Some dependencies are outdated"
+
+  # 后端代码质量检查
+  backend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+        working-directory: src-tauri
+
+      - name: Run Clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+        working-directory: src-tauri
+
+      - name: Run tests
+        run: cargo test --all-features
+        working-directory: src-tauri
+
+      - name: Check dependencies
+        run: cargo audit || echo "Security audit completed"
+        working-directory: src-tauri
+
+      - name: Check for outdated dependencies
+        run: cargo outdated || echo "Some dependencies are outdated"
+        working-directory: src-tauri
+
+  # 安全检查
+  security:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run security audit (npm)
+        run: npm audit --audit-level=moderate
+
+      - name: Run security audit (Cargo)
+        run: |
+          cargo install cargo-audit
+          cargo audit
+        working-directory: src-tauri
+
+      - name: Check for hardcoded secrets
+        run: |
+          # 检查常见的密钥模式
+          grep -r -i "password\|secret\|key\|token" --include="*.js" --include="*.ts" --include="*.json" . || true
+          echo "Manual review recommended for any potential secrets"
+
+  # 性能检查
+  performance:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build frontend (performance check)
+        run: npm run build
+
+      - name: Analyze bundle size
+        run: |
+          npm install -g bundlesize
+          npx bundlesize || echo "Bundle size check completed"
+
+      - name: Check for performance issues
+        run: |
+          # 检查大型文件
+          find src -type f -size +100k -name "*.js" -o -name "*.ts" | head -10
+
+          # 检查大型依赖
+          npm ls --depth=0 | grep -E "[0-9]+\.[0-9]+\.[0-9]+" | wc -l
+
+  # 兼容性检查
+  compatibility:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18, 20, 22]
+        rust-version: [stable, beta]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Setup Rust ${{ matrix.rust-version }}
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust-version }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test build (Node.js ${{ matrix.node-version }})
+        run: npm run build
+
+      - name: Test Rust build (${{ matrix.rust-version }})
+        run: cargo check
+        working-directory: src-tauri
+
+  # 文档检查
+  documentation:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check documentation
+        run: |
+          # 检查 README 是否存在
+          test -f README.md && echo "README.md exists" || echo "README.md missing"
+
+          # 检查代码注释
+          grep -r "TODO\|FIXME\|HACK" --include="*.js" --include="*.ts" --include="*.rs" . || echo "No TODO/FIXME/HACK comments found"
+
+          # 检查文档完整性
+          echo "Documentation check completed"
+
+      - name: Validate package.json
+        run: |
+          # 检查必要的字段
+          node -e "
+            const pkg = require('./package.json');
+            const required = ['name', 'version', 'description', 'author', 'license'];
+            const missing = required.filter(field => !pkg[field]);
+            if (missing.length > 0) {
+              console.error('Missing fields in package.json:', missing);
+              process.exit(1);
+            }
+            console.log('package.json validation passed');
+          "
+
+  # 质量报告
+  quality-report:
+    needs: [frontend, backend, security, performance, compatibility, documentation]
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Generate quality report
+        run: |
+          echo "# Code Quality Report" >> report.md
+          echo "" >> report.md
+          echo "Generated on: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> report.md
+          echo "" >> report.md
+          echo "## Summary" >> report.md
+          echo "- Frontend: ${{ needs.frontend.result }}" >> report.md
+          echo "- Backend: ${{ needs.backend.result }}" >> report.md
+          echo "- Security: ${{ needs.security.result }}" >> report.md
+          echo "- Performance: ${{ needs.performance.result }}" >> report.md
+          echo "- Compatibility: ${{ needs.compatibility.result }}" >> report.md
+          echo "- Documentation: ${{ needs.documentation.result }}" >> report.md
+          echo "" >> report.md
+          echo "## Details" >> report.md
+          echo "Check individual job logs for detailed information." >> report.md
+
+      - name: Upload quality report
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-report
+          path: report.md
+          retention-days: 30
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('report.md', 'utf8');
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: report
+            });

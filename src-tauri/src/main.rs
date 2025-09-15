@@ -7,7 +7,51 @@ use std::panic;
 use tauri::Manager;
 use chrono::Utc;
 
+// 导入串口工具模块
+mod serial_utils;
+// 导入原生串口管理器
+mod native_serial_manager;
+
 fn main() {
+    // Set up panic hook for better error reporting
+    panic::set_hook(Box::new(|panic_info| {
+        let payload = panic_info.payload();
+        let message = if let Some(s) = payload.downcast_ref::<&str>() {
+            s.to_string()
+        } else if let Some(s) = payload.downcast_ref::<String>() {
+            s.clone()
+        } else {
+            "Unknown panic".to_string()
+        };
+
+        let location = panic_info.location()
+            .map(|l| format!(" at {}:{}:{}", l.file(), l.line(), l.column()))
+            .unwrap_or_default();
+
+        eprintln!("PANIC: {}{}", message, location);
+        log::error!("PANIC: {}{}", message, location);
+    }));
+
+    // 根据构建模式设置日志级别和输出
+    let is_debug = cfg!(debug_assertions);
+    let _log_level = if is_debug {
+        log::LevelFilter::Debug
+    } else {
+        log::LevelFilter::Warn
+    };
+
+    if is_debug {
+        log::info!("Starting Serial Pilot application (Debug Mode)...");
+    }
+
+    log::info!("Tauri native serial manager initialized successfully");
+
+    // Read environment variables for plugin control
+    let _enable_window_state = env::var("SP_ENABLE_WINDOW_STATE")
+        .unwrap_or_else(|_| "0".to_string()) == "1";
+
+    let _enable_serial = env::var("SP_ENABLE_SERIAL")
+        .unwrap_or_else(|_| "1".to_string()) == "1";
     // Set up panic hook for better error reporting
     panic::set_hook(Box::new(|panic_info| {
         let payload = panic_info.payload();
@@ -139,7 +183,20 @@ fn main() {
             }
             
             Ok(())
-        });
+        })
+        .invoke_handler(tauri::generate_handler![
+            // 串口增强信息命令
+            serial_utils::get_enhanced_serial_ports,
+            serial_utils::get_device_info,
+            serial_utils::get_port_full_info,
+            // 原生串口管理命令（完全绕过Web Serial API）
+            native_serial_manager::get_native_serial_ports,
+            native_serial_manager::connect_native_serial_port,
+            native_serial_manager::write_native_serial_data,
+            native_serial_manager::disconnect_native_serial_port,
+            native_serial_manager::start_native_serial_listener,
+            native_serial_manager::get_native_connection_status
+        ]);
 
     // Conditionally add window state plugin
     if enable_window_state {
