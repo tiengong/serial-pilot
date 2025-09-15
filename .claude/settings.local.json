@@ -21,7 +21,14 @@
       "Bash(madge:*)",
       "Bash(grep:*)",
       "Bash(find:*)",
-      "Read(//f//**)"
+      "Read(//f//**)",
+      "Bash(npm run tauri:dev)",
+      "Bash(\"F:\\git\\port-pal-automator\\src-tauri\\target\\debug\\serial-pilot.exe\")",
+      "Bash(taskkill /F /IM serial-pilot.exe)",
+      "Bash(taskkill:*)",
+      "Bash(netstat:*)",
+      "Bash(cargo fix:*)",
+      "Bash(pwsh:*)"
     ],
     "deny": [],
     "ask": []
