@@ -14,6 +14,9 @@ import { useTranslation } from "react-i18next";
 import { useSerialManager, type SerialPortInfo } from "@/hooks/useSerialManager";
 import { SerialPortInfo as TransportPortInfo } from '@/lib/serial/transport';
 import { BaudRateSelect } from './BaudRateSelect';
+import { EnhancedSerialPortSelector } from './EnhancedSerialPortSelector';
+import { NativeSerialPortSelector } from './NativeSerialPortSelector';
+import { tauriNativeTransport } from '@/lib/serial/tauriNativeTransport';
 
 interface DualChannelConnectionProps {
   serialManager: ReturnType<typeof useSerialManager>;
@@ -26,7 +29,9 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
 }) => {
   const { toast } = useToast();
   const { t } = useTranslation();
+
   const [availablePorts, setAvailablePorts] = useState<TransportPortInfo[]>([]);
+  const [enhancedPorts, setEnhancedPorts] = useState<any[]>([]);
   const [selectedPorts, setSelectedPorts] = useState<{
     P1: TransportPortInfo | null;
     P2: TransportPortInfo | null;
@@ -42,8 +47,56 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
 
   const { strategy, updateStrategy, ports, serialManager: manager } = serialManager;
 
-  // 获取可用串口 - 优化性能
+  // 获取可用串口 - Tauri原生模式
   const refreshPorts = useCallback(async () => {
+    if (window.__TAURI__) {
+      // Tauri原生模式：完全无浏览器确认
+      await refreshNativePorts();
+    } else {
+      // Web模式：传统方法
+      await refreshWebPorts();
+    }
+  }, [manager]);
+
+  // Tauri原生串口刷新 - 无浏览器确认
+  const refreshNativePorts = async () => {
+    try {
+      const nativePorts = await tauriNativeTransport.listPorts();
+
+      // 转换为标准格式
+      const standardPorts: TransportPortInfo[] = nativePorts.map((port, index) => ({
+        port_name: port.port_name,
+        name: port.display_name,
+        display_name: port.display_name,
+        manufacturer: port.manufacturer,
+        description: port.description,
+        id: `tauri-native-${index}`,
+        path: port.port_name,
+        port_type: 'native' as any
+      }));
+
+      setAvailablePorts(standardPorts);
+
+      if (standardPorts.length === 0) {
+        toast({
+          title: t("connection.noPortsFound"),
+          description: t("connection.noPortsFoundDesc"),
+        });
+      }
+    } catch (error) {
+      console.error('Tauri原生串口获取失败:', error);
+      toast({
+        title: "原生串口获取失败",
+        description: error instanceof Error ? error.message : "无法获取串口设备列表",
+        variant: "destructive"
+      });
+      // 失败了就回退到Web模式
+      await refreshWebPorts();
+    }
+  };
+
+  // Web模式串口刷新
+  const refreshWebPorts = async () => {
     if (!manager.isSupported()) {
       toast({
         title: t("connection.webSerialNotSupported"),
@@ -56,7 +109,7 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
     try {
       const ports = await manager.listPorts();
       setAvailablePorts(ports);
-      
+
       if (ports.length === 0) {
         toast({
           title: t("connection.noPortsFound"),
@@ -64,10 +117,55 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
         });
       }
     } catch (error) {
-      console.error('获取串口列表失败:', error);
+      console.error('Web串口获取失败:', error);
       toast({
         title: t("connection.requestFailed"),
         description: t("connection.requestFailedDesc"),
+        variant: "destructive"
+      });
+    }
+  };
+
+  // 增强串口列表刷新函数
+  const refreshEnhancedPorts = useCallback(async () => {
+    if (!manager.isSupported()) {
+      toast({
+        title: t("connection.webSerialNotSupported"),
+        description: t("connection.webSerialNotSupportedDesc"),
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // 使用Tauri原生串口获取增强信息
+      const ports = await tauriNativeTransport.getEnhancedSerialPorts();
+
+      // 转换为可用格式
+      const transportPorts: TransportPortInfo[] = ports.map(port => ({
+        port_name: port.port_name,
+        name: port.port_name,  // 基础名称
+        display_name: port.display_name,  // 完整显示名称
+        manufacturer: port.manufacturer,
+        device_desc: port.device_desc,
+        // 其他必要字段
+        port_type: 'UsbPort' as any
+      }));
+
+      setAvailablePorts(transportPorts);
+      setEnhancedPorts(ports);
+
+      if (transportPorts.length === 0) {
+        toast({
+          title: t("connection.noPortsFound"),
+          description: t("connection.noPortsFoundDesc")
+        });
+      }
+    } catch (error) {
+      console.error('获取增强串口列表失败:', error);
+      toast({
+        title: t("connection.requestFailed"),
+        description: error instanceof Error ? error.message : t("connection.requestFailedDesc"),
         variant: "destructive"
       });
     }
@@ -135,17 +233,34 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
       await requestPortAndRefresh();
       return;
     }
-    const port = availablePorts[parseInt(value)];
-    setSelectedPorts(prev => ({ ...prev, P1: port }));
-    setSelectedIndex(prev => ({ ...prev, P1: value }));
+
+    if (window.__TAURI__) {
+      // 使用新的增强串口列表
+      const port = availablePorts.find(p => p.port_name === value);
+      if (port) {
+        setSelectedPorts(prev => ({ ...prev, P1: port }));
+        setSelectedIndex(prev => ({ ...prev, P1: value }));
+      }
+    } else {
+      // 传统Web Serial API方法
+      const port = availablePorts[parseInt(value)];
+      setSelectedPorts(prev => ({ ...prev, P1: port }));
+      setSelectedIndex(prev => ({ ...prev, P1: value }));
+    }
   }, [availablePorts, requestPortAndRefresh]);
 
   // P1端口下拉菜单打开处理器 - 优化性能
   const handleP1PortDropdownOpen = useCallback(async (isOpen: boolean) => {
     if (isOpen) {
-      await refreshPorts();
+      if (window.__TAURI__) {
+        // Tauri环境：直接获取增强串口列表
+        await refreshEnhancedPorts();
+      } else {
+        // Web环境：使用传统方法
+        await refreshPorts();
+      }
     }
-  }, [refreshPorts]);
+  }, [refreshEnhancedPorts, refreshPorts]);
 
   // P2端口选择处理器 - 优化性能
   const handleP2PortSelect = useCallback(async (value: string) => {
@@ -153,17 +268,34 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
       await requestPortAndRefresh();
       return;
     }
-    const port = availablePorts[parseInt(value)];
-    setSelectedPorts(prev => ({ ...prev, P2: port }));
-    setSelectedIndex(prev => ({ ...prev, P2: value }));
+
+    if (window.__TAURI__) {
+      // 使用新的增强串口列表
+      const port = availablePorts.find(p => p.port_name === value);
+      if (port) {
+        setSelectedPorts(prev => ({ ...prev, P2: port }));
+        setSelectedIndex(prev => ({ ...prev, P2: value }));
+      }
+    } else {
+      // 传统Web Serial API方法
+      const port = availablePorts[parseInt(value)];
+      setSelectedPorts(prev => ({ ...prev, P2: port }));
+      setSelectedIndex(prev => ({ ...prev, P2: value }));
+    }
   }, [availablePorts, requestPortAndRefresh]);
 
   // P2端口下拉菜单打开处理器 - 优化性能
   const handleP2PortDropdownOpen = useCallback(async (isOpen: boolean) => {
     if (isOpen) {
-      await refreshPorts();
+      if (window.__TAURI__) {
+        // Tauri环境：直接获取增强串口列表
+        await refreshEnhancedPorts();
+      } else {
+        // Web环境：使用传统方法
+        await refreshPorts();
+      }
     }
-  }, [refreshPorts]);
+  }, [refreshEnhancedPorts, refreshPorts]);
 
   if (!manager.isSupported()) {
     return (
@@ -225,41 +357,32 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
               <CardContent className="space-y-3 sm:space-y-4 overflow-hidden">
                 {!p1Port?.connected ? (
                   <>
-                    {/* Port Selection */}
+                    {/* Port Selection - 增强的串口选择器 */}
                     <div className="space-y-1 sm:space-y-2 min-w-0">
                       <Label className="text-xs sm:text-sm flex-shrink-0">{t("connection.selectPort")}</Label>
-                      <Select
-                        value={selectedIndex.P1}
-                        onValueChange={handleP1PortSelect}
-                        onOpenChange={handleP1PortDropdownOpen}
-                      >
-                        <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm w-full min-w-0">
-                          <SelectValue placeholder={t("connection.selectDeviceAuto")} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availablePorts.length === 0 ? (
-                            <>
-                              <SelectItem value="no-ports" disabled>
-                                {t("connection.noPortsAvailable")}
-                              </SelectItem>
-                              <SelectItem value="add-port">
-                                <div className="flex items-center gap-2">
-                                  <Plus className="w-4 h-4" />
-                                  {t("connection.addNewDevice")}
-                                </div>
-                              </SelectItem>
-                            </>
-                          ) : (
-                            availablePorts.map((port, index) => {
-                              return (
-                                <SelectItem key={index} value={index.toString()}>
-                                  {port.name}
-                                </SelectItem>
-                              );
-                            })
-                          )}
-                        </SelectContent>
-                      </Select>
+                      {/* 新的原生串口选择器 - 完全无浏览器确认 */}
+                      {window.__TAURI__ ? (
+                        <NativeSerialPortSelector
+                          value={selectedIndex.P1}
+                          onValueChange={handleP1PortSelect}
+                          onOpenChange={handleP1PortDropdownOpen}
+                          className="h-8 sm:h-10 text-xs sm:text-sm w-full min-w-0"
+                          connectedPorts={p1Port?.connected ? [p1Port.params.path] : []}
+                          hideConnectedPorts={false}
+                          baudRate={strategy.p1Config.baudRate}
+                        />
+                      ) : (
+                        // 兼容模式：非Tauri环境使用传统组件
+                        <EnhancedSerialPortSelector
+                          value={selectedIndex.P1}
+                          onValueChange={handleP1PortSelect}
+                          onOpenChange={handleP1PortDropdownOpen}
+                          placeholder={t("connection.selectDeviceAuto")}
+                          className="h-8 sm:h-10 text-xs sm:text-sm w-full min-w-0"
+                          connectedPorts={p1Port?.connected ? ['P1'] : []}
+                          hideConnectedPorts={false}
+                        />
+                      )}
                     </div>
 
                     {/* Basic Configuration */}
@@ -445,41 +568,32 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                 <CardContent className="space-y-3 sm:space-y-4 overflow-hidden">
                   {!p2Port?.connected ? (
                     <>
-                      {/* Port Selection */}
+                      {/* Port Selection - 增强的串口选择器 */}
                       <div className="space-y-1 sm:space-y-2 min-w-0">
                         <Label className="text-xs sm:text-sm flex-shrink-0">{t("connection.selectPort")}</Label>
-                        <Select
-                          value={selectedIndex.P2}
-                          onValueChange={handleP2PortSelect}
-                          onOpenChange={handleP2PortDropdownOpen}
-                        >
-                          <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm w-full min-w-0">
-                            <SelectValue placeholder={t("connection.selectDeviceAuto")} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {availablePorts.length === 0 ? (
-                              <>
-                                <SelectItem value="no-ports" disabled>
-                                  {t("connection.noPortsAvailable")}
-                                </SelectItem>
-                                <SelectItem value="add-port">
-                                  <div className="flex items-center gap-2">
-                                    <Plus className="w-4 h-4" />
-                                    {t("connection.addNewDevice")}
-                                  </div>
-                                </SelectItem>
-                              </>
-                            ) : (
-                              availablePorts.map((port, index) => {
-                                return (
-                                  <SelectItem key={index} value={index.toString()}>
-                                    {port.name}
-                                  </SelectItem>
-                                );
-                              })
-                            )}
-                          </SelectContent>
-                        </Select>
+                        {/* 新的原生串口选择器 - 完全无浏览器确认 */}
+                        {window.__TAURI__ ? (
+                          <NativeSerialPortSelector
+                            value={selectedIndex.P2}
+                            onValueChange={handleP2PortSelect}
+                            onOpenChange={handleP2PortDropdownOpen}
+                            className="h-8 sm:h-10 text-xs sm:text-sm w-full min-w-0"
+                            connectedPorts={p2Port?.connected ? [p2Port.params.path] : []}
+                            hideConnectedPorts={false}
+                            baudRate={strategy.p2Config.baudRate}
+                          />
+                        ) : (
+                          // 兼容模式：非Tauri环境使用传统组件
+                          <EnhancedSerialPortSelector
+                            value={selectedIndex.P2}
+                            onValueChange={handleP2PortSelect}
+                            onOpenChange={handleP2PortDropdownOpen}
+                            placeholder={t("connection.selectDeviceAuto")}
+                            className="h-8 sm:h-10 text-xs sm:text-sm w-full min-w-0"
+                            connectedPorts={p2Port?.connected ? ['P2'] : []}
+                            hideConnectedPorts={false}
+                          />
+                        )}
                       </div>
 
                       {/* Detailed Configuration */}

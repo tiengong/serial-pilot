@@ -88,6 +88,8 @@ codegen-units = 256
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3", features = ["winuser", "wincon", "handleapi", "processthreadsapi"] }
+winreg = "0.52"
+lazy_static = "1.4"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
