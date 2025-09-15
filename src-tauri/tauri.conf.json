@@ -55,8 +55,6 @@
     "dialog": null,
     "shell": null,
     "window": null,
-    "serialplugin": {
-      "scope": ["*"]
-    }
+    "serialplugin": null
   }
 }
