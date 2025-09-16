@@ -1,5 +1,30 @@
-# Logs
-logs
+
+
+# ===================== 1. 依赖目录 =====================
+node_modules/
+litellm-env/
+
+# ===================== 2. 构建产物 =====================
+builds/
+src-tauri/target/
+src-tauri/gen/
+
+# ===================== 3. 敏感环境配置 =====================
+.env.debug
+.env.development
+.env.production
+.env.release
+# 通用匹配所有 .env 文件（防止新增未列的 .env 变体）
+.env*
+# 例外：若有 .env.example（示例配置，无敏感信息），可保留（当前项目无，暂注释）
+# !.env.example
+
+# ===================== 4. 临时/备份文件 =====================
+a.txt
+*.backup
+# 通用备份/临时文件
+*~
+*.swp
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -17,6 +42,12 @@ dist-ssr
 !.vscode/extensions.json
 .idea
 .DS_Store
+Thumbs.db
+
+# ===================== 5. IDE 本地配置 =====================
+.claude/
+.vscode/
+.idea/
 *.suo
 *.ntvs*
 *.njsproj
