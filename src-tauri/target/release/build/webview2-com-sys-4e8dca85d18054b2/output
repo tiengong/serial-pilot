@@ -1,2 +1,0 @@
-cargo:rustc-link-search=native=F:\git\port-pal-automator\src-tauri\target\release\build\webview2-com-sys-4e8dca85d18054b2\out\x64
-cargo:rustc-link-lib=advapi32
